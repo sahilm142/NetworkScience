@@ -1,0 +1,166 @@
+# News-Articles-Similarity
+library("rvest")
+library("tm")
+library("igraph")
+
+url <- "http://indianexpress.com/section/world/"
+
+r<-read_html(url)
+nodes <- html_nodes(r,'.title a')
+l<-html_attr(nodes,name='href')
+#arr<-array(data = html_attr(nodes,name = 'href'))
+n<-length(l)
+n=min(n,20)
+
+#print(arr)
+#for(i in 1:5)
+#{
+#d<-read_html(arr[i])
+#n<-html_nodes(d,'p, .synopsis, h1')
+#html_text(n)
+#}
+#documents<-'s'
+for(i in 1:n)
+{ #print(i)
+  
+  p<-html_text(html_nodes(read_html(arr[i]),'p, .synopsis,h1'))
+  write.table(p, file=paste("C://users/sahil/desktop/netwrk/scrape",paste(as.character(i),".txt",sep = ""),sep =" "), append=TRUE, sep="\n\n", row.name=FALSE, col.name=FALSE)
+  
+}
+#orginal<-documents
+documents <- Corpus(DirSource("C://users/sahil/desktop/netwrk/"))
+documents = tm_map(documents, content_transformer(tolower))
+documents = tm_map(documents, removePunctuation)
+documents = tm_map(documents, removeNumbers)
+documents = tm_map(documents, removeWords, stopwords("english"))
+#dtm<-DocumentTermMatrix(documents,control = list(weighting=weightTfIdf))
+#dtm_mat<-data.matrix(dtm)
+dtm <- DocumentTermMatrix(documents,control = list(weighting = weightTfIdf,wordLengths=c(4, 10),bounds = list(global = c(1 , n-1)))) 
+m <- as.matrix(dtm)
+g = graph.incidence(m,weighted = TRUE)
+ 
+
+#for(i in 1:6)
+#{
+#  a<-sort(dtm_mat[i,],decreasing = TRUE)
+#  cat("for documents",i,"\n")
+#  for(j in 1:5)
+#  { 
+#    print(names(a)[j])
+#   #write.csv(names(a)[],'k.csv')
+#  }
+#  ans<-rbind(ans,s)
+#  rownames(ans)[i]<-capture.output(cat('for document',i))
+#}
+#print(ans)
+#write.csv(ans,'ans.csv')
+#  write.csv(names(a)[i],'k.csv')
+#ans<-matrix(c,nrow=0,ncol=5)
+#print(ans)
+
+ans=array(' ',dim = c(n,5))
+for(i in 1:n)
+{ #print(i)
+  a<-sort(m[i,],decreasing = TRUE)[1:5]
+  b<-rownames(as.matrix(a))  
+  ans[i,]=b
+#  s<-''
+#  for(j in 1:5)
+#  {
+#    s[j]<-names(a)[j]
+#  }
+#  ans<-rbind(ans,s)
+#  rownames(ans)[i]<-capture.output(cat('Article',i))
+}
+write.csv(ans,'C://users/sahil/desktop/netwrk/1501CS39_1.csv')
+#print(ans)
+
+cosine_similarity<-function(vect1,vect2) 
+{
+  return (sum(vect1*vect2)/sqrt(sum(vect1^2)*sum(vect2^2)))          #returns the cosine of the angle between two vectors
+}
+
+dotprod_mat<-array(0,dim=c(n,n))                                   #this matrix stores the cosine similarity values of all the pairs of urls
+for(i in 1:n)
+{
+  for(j in 1:n)
+  {
+    if(j > i){
+      dotprod_mat[i,j]= dotprod_mat[j, i] = cosine_similarity(m[i,],m[j,])
+    }
+  } 
+}
+
+avg=sqrt(sum(dotprod_mat^2))/(n^2);                                    # average of all the cosine similarity values
+
+predicted<-array(0,dim=c(n,n))
+
+for(i in 1:n)
+{
+  for(j in 1:n)
+  {
+    if(dotprod_mat[i,j]>=10*avg || i==j)   
+      predicted[i,j]= 1
+    else
+      predicted[i,j]= 0  
+    
+  } 
+}
+View(predicted)
+# manually assigning values of 1 or 0 if two pages are similar or not
+manual<-array(0,dim = c(n,n))
+for(i in 1:n)
+{
+  manual[i,i]=1                                                                # every page is similar to itself
+}
+manual[1,2]=1
+manual[2,1]=1
+manual[1,3]=1
+manual[3,1]=1
+manual[5,15]=1
+manual[15,5]=1
+manual[7,15]=1
+manual[15,7]=1
+manual[2,4]=1
+manual[4,2]=1
+manual[8,2]=1
+manual[2,8]=1
+manual[19,5]=1
+manual[5,19]=1
+manual[18,5]=1
+manual[5,18]=1
+manual[20,10]=1
+manual[10,20]=1
+manual[9,20]=1
+manual[20,9]=1
+manual[12,20]=1
+manual[20,12]=1
+
+View(manual)
+confusion_matrix<-array(0,dim = c(2,2))
+for(i in 1:n)
+{
+  for(j in 1:n)
+  {
+    if(predicted[i,j]==1 && manual[i,j]==1)                                                    # if both yes
+      confusion_matrix[2,2]=confusion_matrix[2,2]+1
+    else if(predicted[i,j]==1 && manual[i,j]==0)                                               # if predicted=yes and manual=no
+      confusion_matrix[1,2]=confusion_matrix[1,2]+1 
+    else if(predicted[i,j]==0 && manual[i,j]==1)                                               # if predicted=no and manual=yes
+      confusion_matrix[2,1]=confusion_matrix[2,1]+1
+    else                                                                                        # if predicted=no and manual=no
+      confusion_matrix[1,1]=confusion_matrix[1,1]+1
+  }
+}
+View(confusion_matrix)
+accuracy=(confusion_matrix[1,1]+confusion_matrix[2,2])*100/(n^2)                                 # calculate accuracy
+cat("accuracy :: ",accuracy,"%")
+rownames(predicted)=paste0("Article",1:n)                                                       # row attributes
+colnames(predicted)=paste0("Article",1:n)                                                       # col attributes
+rownames(confusion_matrix)=c("Actual NO","Actual YES")                                           # row attributes 
+colnames(confusion_matrix)=c("Predicted NO","Predicted YES")                                     # col attributes
+write.csv(m,file="C://users/sahil/desktop/netwrk/bipartite_tf_idf.csv")                              # write to csv file
+write.csv(predicted,file="C://users/sahil/desktop/netwrk/similarity_prediction.csv")                 # write to csv file
+write.csv(confusion_matrix,file="C://users/sahil/desktop/netwrk/confusion_matrix.csv")               # write to csv file
+
+
