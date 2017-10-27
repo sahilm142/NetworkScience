@@ -1,9 +1,14 @@
 # News-Articles-Similarity
+#packages needed
+install.packages("rvest")
+install.packages("tm")
+install.packages("igraph")
+
 library("rvest")
 library("tm")
 library("igraph")
 
-url <- "http://indianexpress.com/section/world/"
+url <- "http://indianexpress.com/section/world/"      #news web address
 
 r<-read_html(url)
 nodes <- html_nodes(r,'.title a')
@@ -24,11 +29,11 @@ for(i in 1:n)
 { #print(i)
   
   p<-html_text(html_nodes(read_html(arr[i]),'p, .synopsis,h1'))
-  write.table(p, file=paste("C://users/sahil/desktop/netwrk/scrape",paste(as.character(i),".txt",sep = ""),sep =" "), append=TRUE, sep="\n\n", row.name=FALSE, col.name=FALSE)
+  write.table(p, file=paste("dir_name",paste(as.character(i),".txt",sep = ""),sep =" "), append=TRUE, sep="\n\n", row.name=FALSE, col.name=FALSE)
   
 }
 #orginal<-documents
-documents <- Corpus(DirSource("C://users/sahil/desktop/netwrk/"))
+documents <- Corpus(DirSource("dir_name"))
 documents = tm_map(documents, content_transformer(tolower))
 documents = tm_map(documents, removePunctuation)
 documents = tm_map(documents, removeNumbers)
@@ -72,7 +77,7 @@ for(i in 1:n)
 #  ans<-rbind(ans,s)
 #  rownames(ans)[i]<-capture.output(cat('Article',i))
 }
-write.csv(ans,'C://users/sahil/desktop/netwrk/1501CS39_1.csv')
+write.csv(ans,'dir_name')
 #print(ans)
 
 cosine_similarity<-function(vect1,vect2) 
@@ -159,8 +164,8 @@ rownames(predicted)=paste0("Article",1:n)                                       
 colnames(predicted)=paste0("Article",1:n)                                                       # col attributes
 rownames(confusion_matrix)=c("Actual NO","Actual YES")                                           # row attributes 
 colnames(confusion_matrix)=c("Predicted NO","Predicted YES")                                     # col attributes
-write.csv(m,file="C://users/sahil/desktop/netwrk/bipartite_tf_idf.csv")                              # write to csv file
-write.csv(predicted,file="C://users/sahil/desktop/netwrk/similarity_prediction.csv")                 # write to csv file
-write.csv(confusion_matrix,file="C://users/sahil/desktop/netwrk/confusion_matrix.csv")               # write to csv file
+write.csv(m,file="dir_name")                                                                     # write to csv file
+write.csv(predicted,file="dir_name")                                                             # write to csv file
+write.csv(confusion_matrix,file="dir_name")                                                      # write to csv file
 
 
